@@ -288,6 +288,13 @@ static int httpSendQuery (httpPoolT *pool, const char* url, const httpHeadersT *
 		if (mstatus != CURLM_OK) {
 			fprintf (stderr,"[curl-multi-fail] curl curl_multi_add_handle fail url=%s error=%s (httpSendQuery)", url, curl_multi_strerror(mstatus));
 			goto OnErrorExit;
+		} else {
+			int inprogress;
+			mstatus= curl_multi_perform(pool->multi, &inprogress);
+			if (mstatus != CURLM_OK) {
+                fprintf (stderr,"[curl-multi-fail] curl curl_multi_perform fail url=%s error=%s (httpSendQuery)", url, curl_multi_strerror(mstatus));
+                goto OnErrorExit;
+            }
 		}
 
 	} else {

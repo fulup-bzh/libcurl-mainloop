@@ -1,24 +1,26 @@
 Small interface to libcurl with systemd event mainloop
 
-Usage:
-
-* build query to url before request
-* add header+token+options to request
-* send your request
-  * get httpSendGet
-  * post httpSendPost/httpSendJson
-
-Build dependencies:
-
-* libsystemd-devel
-* libcurl-devel
-
-Run test
+## Build & test
 ```
-make
+# install dependencies (libsystemd-devel &  libcurl-devel)
+  make
+
+# run
 ./curl-http -a https://example.com  # asynchronous
 ./curl-http -s https://example.com  # synchronous
 
+```
+
+## Simple C API for get/post operations.
+
+Synchronous and asynchronous mode transparently supported. In both modes user callback receives on request completion a handler with status, headers, body and statistics.
+
+* query: httpBuildQuery
+* get: httpSendGet
+* post: httpSendPost
+
+
+## Check main.c for api sample
 ```
 char urltarget[DFLT_URL_MAX_LEN]; // final url as compose by httpBuildQuery (should be big enough)
 
