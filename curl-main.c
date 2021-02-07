@@ -50,25 +50,37 @@
 #include <stdlib.h>
 #include <string.h>
 
+// default mainloop timeout 1s
+#ifndef MAIN_LOOP_WAIT
+#define MAIN_LOOP_WAIT 1
+#endif
+
 static int count=0; // global pending http request
+
+typedef struct {
+	int uid;
+	const char *url;
+} reqCtxT;
 
 
 // The URL callback in your application where users are sent after authorization.
 static void sampleCallback (httpRqtT *httpRqt) {
   	assert (httpRqt->magic == MAGIC_HTTP_RQT);
-	long reqId= (long)httpRqt->context; // retreive reqId from request context
+	reqCtxT *ctxRqt = (reqCtxT*)httpRqt->context;
 
 	if (httpRqt->status != 200) goto OnErrorExit;
 
 	double seconds= (double)httpRqt->msTime/1000.0;
-	fprintf (stdout, "[body]=%s", httpRqt->body);
-	fprintf (stdout, "[request-ok] reqId=%d elapsed=%2.2fs\n", reqId, httpRqt->msTime, seconds);
+	fprintf (stdout, "\n[body]=%s", httpRqt->body);
+	fprintf (stdout, "[request-ok] reqId=%d elapsed=%2.2fs url=%s\n", ctxRqt->uid, seconds, ctxRqt->url);
+	free (httpRqt->context);
 	free (httpRqt);
 	count --;
 	return;
 
 OnErrorExit:
 	fprintf (stderr, "[request-fx] status=%ld", httpRqt->status);
+	free (httpRqt->context);
 	free (httpRqt);
 	count --;
 }
@@ -82,25 +94,27 @@ typedef enum {
 int main(int argc, char *argv[]) {
 	const char * url;
 	httpPoolT* httpPool=NULL;
-	int err, start;
+	int err, start, verbose=0;
 	runModT runmode=MOD_DEFAULT;
+	long uid=0;
 
 	if (argc <= 1) {
-		fprintf (stderr, "syntax curl-http [-s|-a] url-1, ... url-n\n");
+		fprintf (stderr, "syntax curl-http [-v] [-s|-a] url-1, ... url-n\n");
 		goto OnErrorExit;
 	}
 
 	// check for option and shift argv as needed
-	if (!strcasecmp (argv[1], "-s")) runmode= MOD_SYNC;
-	if (!strcasecmp (argv[1], "-a")) runmode= MOD_ASYNC;
-	if (runmode == MOD_DEFAULT) start=1;
-	else start =2;
+	for (start=1; argv[start][0] == '-'; start ++) {
+		if (!strcasecmp (argv[start], "-s")) runmode= MOD_SYNC;
+		if (!strcasecmp (argv[start], "-a")) runmode= MOD_ASYNC;
+		if (!strcasecmp (argv[start], "-v")) verbose++;
+		if (!strcasecmp (argv[start], "-vv")) verbose=+2;
+		if (!strcasecmp (argv[start], "-vvv")) verbose=+3;
+	}
 
-	// if asynchronous request a new event loop
-	if (runmode == MOD_SYNC) fprintf (stdout, "-- synchronous mode\n");
-	else {
+	// if asynchronous request a new event loop and create http multi pool
+	if (runmode != MOD_SYNC)  {
 		sd_event *evtLoop;
-		fprintf (stdout, "-- asynchronous mode\n");
 		// create a new systemd event loop
 		err= sd_event_new(&evtLoop);
 		if (err) {
@@ -109,7 +123,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		// create multi pool and attach systemd eventloop
-		httpPool= httpCreatePool(evtLoop);
+		httpPool= httpCreatePool(evtLoop, verbose);
 		if (!httpPool) {
 			fprintf (stderr, "fail to create libcurl multi pool\n");
 			goto OnErrorExit;
@@ -117,25 +131,31 @@ int main(int argc, char *argv[]) {
 	}
 
 	// launch all or request in asynchronous mode.
-	fprintf (stdout, "-- Launching %d request\n", argc-start);
+	if (verbose) fprintf (stdout, "-- Launching %d request\n", (argc - start));
 	for (long reqId=start; reqId < argc; reqId++) {
-		url=argv[reqId];
-		fprintf (stdout, "--- request: reqId=%d %s\n", reqId, url);
+
+		// add a sample context to http request
+		reqCtxT *ctxRqt= calloc (1, sizeof(reqCtxT));
+		ctxRqt->url=argv[reqId];
+		ctxRqt->uid= uid++;
+
+		if (verbose) fprintf (stdout, "-- request: reqId=%d %s\n", ctxRqt->uid, ctxRqt->url);
 
 		// basic get with no header, token, query or options
-		err= httpSendGet  (httpPool, url, NULL/*headers*/, NULL/*token*/, NULL/*opts*/, sampleCallback, (void*)reqId);
+		err= httpSendGet  (httpPool, ctxRqt->url, NULL/*headers*/, NULL/*token*/, NULL/*opts*/, sampleCallback, (void*)ctxRqt);
 		if (!err) count++;
 		else {
-			fprintf (stderr, "fail launch request url=%s\n", url);
+			fprintf (stderr, "fail launch request url=%s\n", ctxRqt->url);
 			goto OnErrorExit;
 		}
 	}
 
 	// wait for all pending request to be finished
 	if (runmode != MOD_SYNC) while (count) {
-		// check every second that no more request are pending
-		err= sd_event_run(httpPool->evtLoop, 1000000);
-		fprintf (stdout, "--- waiting for %d pending request(s) to finish\n", count);
+		// enter mainloop and ping stdout every xxx seconds if nothing happen
+		err= sd_event_run(httpPool->evtLoop, MAIN_LOOP_WAIT *1000000);
+		if (verbose > 1) fprintf (stdout, "-- waiting %d pending request(s)\n", count);
+		else fprintf (stdout,".");
 	}
 
 	fprintf (stdout, "-- Done (no more pending request)\n", count);

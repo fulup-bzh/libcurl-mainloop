@@ -50,6 +50,7 @@ typedef void (*httpRqtCbT)(httpRqtT *httpRqt);
 
 typedef struct httpRqtS {
 	int magic;
+	int verbose;
 	char *body;
 	char *headers;
 	char *ctype;
@@ -68,12 +69,13 @@ typedef struct httpRqtS {
 
 typedef struct httpPoolS {
 	int magic;
+	int verbose;
     sd_event *evtLoop;
 	sd_event_source *timer;
     CURLM *multi;
 } httpPoolT;
 
-httpPoolT* httpCreatePool(sd_event *evtLoop);
+httpPoolT* httpCreatePool(sd_event *evtLoop, int verbose);
 int httpBuildQuery (const char *uid, char *response, size_t maxlen, const char *prefix, const char *url, httpQueryT *query);
 int httpSendPost (httpPoolT *pool, const char* url, const httpHeadersT *headers, httpHeadersT *tokens, httpOptsT *opts, void *databuf, long datalen, httpRqtCbT callback, void* ctx);
 int httpSendGet  (httpPoolT *pool, const char* url, const httpHeadersT *headers, httpHeadersT *tokens, httpOptsT *opts, httpRqtCbT callback, void* ctx);

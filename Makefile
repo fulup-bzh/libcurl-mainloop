@@ -7,23 +7,23 @@
 # $RP_END_LICENSE$
 #
 
+# mainloop waiting time in seconds
+OPTIONS = -D MAIN_LOOP_WAIT=3
 
-CFLAGS = -g $(shell pkg-config --cflags ) \
-	-Wl,--version-script=$(shell pkg-config --variable=version_script libcurl libsystemd)
-
+CFLAGS = -g $(shell pkg-config --cflags libcurl libsystemd) ${OPTIONS}
 LFLAGS = -g $(shell pkg-config --cflags --libs libcurl libsystemd)
 
 
 .PHONY: all clean
 
-all: builddir curl-http done
+all: builddir build/curl-http done
 
 done:
 	@echo "--"
-	@echo "-- syntax: ./curl-http http://example.com https://example.com"
+	@echo "-- syntax: ./build/curl-http -v -a https://example.com http://example.com"
 	@echo "--"
 
-curl-http: build/curl-http.o build/curl-main.o
+build/curl-http: build/curl-http.o build/curl-main.o
 	$(CC) $(LFLAGS) -o $@ build/curl-http.o build/curl-main.o
 
 build/%.o: %.c
