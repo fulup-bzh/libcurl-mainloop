@@ -8,6 +8,17 @@ Usage:
   * get httpSendGet
   * post httpSendPost/httpSendJson
 
+Build dependencies:
+
+* libsystemd-devel
+* libcurl-devel
+
+Run test
+```
+make
+./curl-http -a https://example.com  # asynchronous
+./curl-http -s https://example.com  # synchronous
+
 ```
 char urltarget[DFLT_URL_MAX_LEN]; // final url as compose by httpBuildQuery (should be big enough)
 
