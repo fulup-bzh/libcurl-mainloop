@@ -1,38 +1,52 @@
 Small interface to libcurl with systemd event mainloop
 
-## Build & test
+# Build
+
+You need to select a supported mainloop library. As today libsystemd & libuv
+
+### libsystemd
 ```
-# install dependencies (libsystemd-devel &  libcurl-devel)
-  make
+  dnf/zypper/apt install libsystemd-devel
+  make MAIN_LOOP=systemd
+```
 
-# run
-./curl-http -a https://example.com  # asynchronous
-./curl-http -s https://example.com  # synchronous
+### libuv
+```
+  dnf/zypper/apt install libuv-devel
+  make MAIN_LOOP=libuv
+```
+
+### synchronous only (no gluelib/mainloop)
+```
+  make 
+```
+
+# Test
+```
+# asynchronous ./curl-http -v -a https://example.com https://example.com  
+# synchronous  ./curl-http -v -s https://example.com https://example.com 
 
 ```
 
-## Simple C API for get/post operations.
+# Libcurl asynchronous C-API.
 
-Synchronous and asynchronous mode transparently supported. In both modes user callback receives on request completion a handler with status, headers, body and statistics.
+Synchronous/asynchronous transparently supported. In both modes user callback receives on request completion a handler with status, headers, body and statistics.
 
-* query: httpBuildQuery
-* get: httpSendGet
-* post: httpSendPost
+check curl-mail.c for a complete example.
 
-
-## Check main.c for api sample
+## Api example
 ```
 char urltarget[DFLT_URL_MAX_LEN]; // final url as compose by httpBuildQuery (should be big enough)
 
 // headers + tokens uses the same syntax and are merge in httpSendGet
-const httpHeadersT sampleHeaders[]= {
+const httpKeyValT sampleHeaders[]= {
 	{.tag="Content-type", .value="application/x-www-form-urlencoded"},
 	{.tag="Accept", .value="application/json"},
 	{NULL}  // terminator
 };
 
 // Url query needs to be build before sending the request with httpBuildQuery
-httpQueryT query[]= {
+httpKeyValT query[]= {
 	{.tag="client_id"    , .value=idp->credentials->clientId},
 	{.tag="client_secret", .value=idp->credentials->secret},
 	{.tag="code"         , .value=code},
@@ -44,6 +58,6 @@ httpQueryT query[]= {
 
 // build your query and send your request
 err= httpBuildQuery (idp->uid, urltarget, sizeof(url), urlPrefix, urlSource, query);
-err= httpSendGet  (pool, urltarget, headers, tokens, opts, callback, (void*)context);
-err= httpSendPost (pool, urltarget, headers, tokens, opts, (void*)databuf, datalen, callback, void*(context));
+err= httpSendGet  (pool, urltarget, headers, tokens, opts, callback, (void*)userData);
+err= httpSendPost (pool, urltarget, headers, tokens, opts, (void*)databuf, datalen, callback, void*(userData));
 ```

@@ -7,12 +7,20 @@
 # $RP_END_LICENSE$
 #
 
-# mainloop waiting time in seconds
-OPTIONS = -D MAIN_LOOP_WAIT=3
+ifeq ($(MAIN_LOOP),systemd)
+	GLUE_OPTS = -DGLUE_LOOP_ON
+	GLUE_FUNC = build/glue-systemd.o
+	GLUE_LIB=libsystemd
 
-CFLAGS = -g $(shell pkg-config --cflags libcurl libsystemd) ${OPTIONS}
-LFLAGS = -g $(shell pkg-config --cflags --libs libcurl libsystemd)
+else ifeq ($(MAIN_LOOP),libuv)
+	GLUE_LIB=libuv
+	GLUE_OPTS = -DGLUE_LOOP_ON
+	GLUE_FUNC = build/glue-libuv.o
 
+endif
+
+CFLAGS = -g $(shell pkg-config --cflags libcurl $(GLUE_LIB)) $(GLUE_OPTS)
+LFLAGS = -g $(shell pkg-config --cflags --libs libcurl $(GLUE_LIB))
 
 .PHONY: all clean
 
@@ -23,15 +31,18 @@ done:
 	@echo "-- syntax: ./build/curl-http -v -a https://example.com http://example.com"
 	@echo "--"
 
-build/curl-http: build/curl-http.o build/curl-main.o
-	$(CC) $(LFLAGS) -o $@ build/curl-http.o build/curl-main.o
+build/curl-http: build/curl-http.o build/curl-main.o $(GLUE_FUNC)
+	$(CC) $(LFLAGS) -o $@ build/curl-http.o build/curl-main.o $(GLUE_FUNC)
 
 build/%.o: %.c
-	$(CC) $(CFLAGS) -c ./$< -o $@
+	$(CC) $(CFLAGS) $(GLUE_OPTS) -c ./$< -o $@
 
 builddir:
 	@mkdir -p ./build
 
 clean:
 	rm build/* 2>/dev/null || true
+
+help: 
+	@echo "[missing-maonloop] syntax: 'make MAIN_LOOP=systemd|libuv'"
 
