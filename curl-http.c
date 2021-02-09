@@ -259,6 +259,7 @@ static int httpSendQuery(httpPoolT *httpPool, const char *url, const httpKeyValT
     curl_easy_setopt(httpRqt->easy, CURLOPT_LOW_SPEED_LIMIT, 30L);
     curl_easy_setopt(httpRqt->easy, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(httpRqt->easy, CURLOPT_MAXREDIRS, 5L);
+    curl_easy_setopt(httpRqt->easy, CURLOPT_MAXFILESIZE, 100000000L);
 
     if (opts)
     {

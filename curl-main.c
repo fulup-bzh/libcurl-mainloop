@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
         ctxRqt->uid = uid++;
 
         if (verbose)
-            fprintf(stdout, "-- request: reqId=%d %s\n", ctxRqt->uid, ctxRqt->url);
+            fprintf(stderr, "-- request: reqId=%d %s\n", ctxRqt->uid, ctxRqt->url);
 
         // basic get with no header, token, query or options
         err = httpSendGet(httpPool, ctxRqt->url, NULL /*headers*/, NULL /*token*/, NULL /*opts*/, sampleCallback, (void *)ctxRqt, NULL /*freecb*/);
@@ -148,15 +148,15 @@ int main(int argc, char *argv[])
             // enter mainloop and ping stdout every xxx seconds if nothing happen
             (void)httpPool->callback->evtRunLoop(httpPool, LOOP_WAIT_SEC);
             if (verbose > 1)
-                fprintf(stdout, "-- waiting %d pending request(s)\n", count);
+                fprintf(stderr, "-- waiting %d pending request(s)\n", count);
             else
-                fprintf(stdout, ".");
+                fprintf(stderr, ".");
         }
     clock_gettime(CLOCK_MONOTONIC, &stopTime);
     uint64_t msElapsed = (stopTime.tv_nsec - startTime.tv_nsec) / 1000000 + (stopTime.tv_sec - startTime.tv_sec) * 1000;
     double seconds = (double)msElapsed / 1000.0;
 
-    fprintf(stdout, "-- Done elapsed=%2.2fs (no more pending request)\n", seconds);
+    fprintf(stderr, "\n-- Done elapsed=%2.2fs (no more pending request)\n", seconds);
     exit(0);
 
 OnErrorExit:
