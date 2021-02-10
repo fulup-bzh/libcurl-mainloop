@@ -41,7 +41,7 @@ static httpRqtActionT sampleCallback(httpRqtT *httpRqt)
 
     double seconds = (double)httpRqt->msTime / 1000.0;
     fprintf(stdout, "\n[body]=%s", httpRqt->body);
-    fprintf(stdout, "[request-ok] reqId=%d elapsed=%2.2fs url=%s\n", ctxRqt->uid, seconds, ctxRqt->url);
+    fprintf(stderr, "[request-ok] reqId=%d elapsed=%2.2fs url=%s\n", ctxRqt->uid, seconds, ctxRqt->url);
     count--;
     return HTTP_HANDLE_FREE;
 
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 
     if (argc <= 1)
     {
-        fprintf(stderr, "syntax curl-http [-v] [-s|-a] url-1, ... url-n\n");
+        fprintf(stderr, "[syntax-error] curl-http [-v] [-s|-a] url-1, ... url-n\n");
         goto OnErrorExit;
     }
 
@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
             httpPool = httpCreatePool(evtLoop, mainLoopCbs, verbose);
             if (!httpPool)
             {
-                fprintf(stderr, "fail to create libcurl multi pool\n");
+                fprintf(stderr, "[fail-create-pool] libcurl multi pool\n");
                 goto OnErrorExit;
             }
         }
@@ -117,7 +117,6 @@ int main(int argc, char *argv[])
 #endif    
 
     // launch all or request in asynchronous mode.
-    if (verbose) fprintf(stdout, "-- Launching %d request\n", (argc - start));
     clock_gettime(CLOCK_MONOTONIC, &startTime);
     for (long reqId = start; reqId < argc; reqId++)
     {
@@ -128,7 +127,7 @@ int main(int argc, char *argv[])
         ctxRqt->uid = uid++;
 
         if (verbose)
-            fprintf(stderr, "-- request: reqId=%d %s\n", ctxRqt->uid, ctxRqt->url);
+            fprintf(stderr, "[request-sent] reqId=%d %s\n", ctxRqt->uid, ctxRqt->url);
 
         // basic get with no header, token, query or options
         err = httpSendGet(httpPool, ctxRqt->url, NULL /*headers*/, NULL /*token*/, NULL /*opts*/, sampleCallback, (void *)ctxRqt, NULL /*freecb*/);
@@ -136,7 +135,7 @@ int main(int argc, char *argv[])
             count++;
         else
         {
-            fprintf(stderr, "fail launch request url=%s\n", ctxRqt->url);
+            fprintf(stderr, "[request-fail] request url=%s\n", ctxRqt->url);
             goto OnErrorExit;
         }
     }
@@ -156,7 +155,7 @@ int main(int argc, char *argv[])
     uint64_t msElapsed = (stopTime.tv_nsec - startTime.tv_nsec) / 1000000 + (stopTime.tv_sec - startTime.tv_sec) * 1000;
     double seconds = (double)msElapsed / 1000.0;
 
-    fprintf(stderr, "\n-- Done elapsed=%2.2fs (no more pending request)\n", seconds);
+    fprintf(stderr, "\n[request-done] total request count=%d elapsed=%2.2fs (no more pending request)\n", uid, seconds);
     exit(0);
 
 OnErrorExit:
