@@ -24,15 +24,15 @@ LFLAGS = -g $(shell pkg-config --cflags --libs libcurl $(GLUE_LIB))
 
 .PHONY: all clean
 
-all: builddir build/curl-http done
+all: builddir build/http-client done
 
 done:
 	@echo "--"
-	@echo "-- syntax: ./build/curl-http -v -a https://example.com http://example.com"
+	@echo "-- syntax: ./build/http-client -v -a https://example.com http://example.com"
 	@echo "--"
 
-build/curl-http: build/curl-http.o build/curl-main.o $(GLUE_FUNC)
-	$(CC) $(LFLAGS) -o $@ build/curl-http.o build/curl-main.o $(GLUE_FUNC)
+build/http-client: build/http-client.o build/curl-main.o $(GLUE_FUNC)
+	$(CC) $(LFLAGS) -o $@ build/http-client.o build/curl-main.o $(GLUE_FUNC)
 
 build/%.o: %.c
 	$(CC) $(CFLAGS) $(GLUE_OPTS) -c ./$< -o $@
@@ -43,6 +43,6 @@ builddir:
 clean:
 	rm build/* 2>/dev/null || true
 
-help: 
+help:
 	@echo "[missing-maonloop] syntax: 'make MAIN_LOOP=systemd|libuv'"
 

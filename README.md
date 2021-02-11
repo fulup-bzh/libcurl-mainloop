@@ -18,13 +18,13 @@ You need to select a supported mainloop library. As today libsystemd & libuv
 
 ### synchronous only (no gluelib/mainloop)
 ```
-  make 
+  make
 ```
 
 # Test
 ```
-# asynchronous ./curl-http -v -a https://example.com https://example.com  
-# synchronous  ./curl-http -v -s https://example.com https://example.com 
+# asynchronous ./http-client -v -a https://example.com https://example.com
+# synchronous  ./http-client -v -s https://example.com https://example.com
 
 ```
 

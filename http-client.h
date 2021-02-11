@@ -20,6 +20,8 @@
 #define MAGIC_HTTP_RQT 951357
 #define MAGIC_HTTP_POOL 583498
 #define DFLT_HEADER_MAX_LEN 1024
+#define HTTP_DFLT_AGENT "afb-oidc-sgate/1.0"
+
 
 typedef struct httpPoolS httpPoolT;
 
@@ -35,25 +37,34 @@ typedef struct
     const char *value;
 } httpKeyValT;
 
+typedef void (*httpFreeCtxCbT)(void *userData);
+
 // curl options
 typedef struct
 {
-    char *username;
-    char *password;
-    char *bearer;
-    long timeout;
-    long sslchk;
-    long verbose;
+    const char *username;
+    const char *password;
+    const char *bearer;
+    const long timeout;
+    const long sslchk;
+    const long verbose;
+    const long maxsz;
+    const long speedlimit;
+    const long speedlow;
+    const long follow;
+    const long maxredir;
     const char *proxy;
     const char *cainfo;
     const char *sslcert;
     const char *sslkey;
     const char *tostr;
+    const char *agent;
+    const httpKeyValT *headers;
+    const httpFreeCtxCbT freeCtx;
 } httpOptsT;
 
 typedef struct httpRqtS httpRqtT;
 typedef httpRqtActionT (*httpRqtCbT)(httpRqtT *httpRqt);
-typedef void (*httpFreeCtxCbT)(void *userData);
 
 // http request handle
 typedef struct httpRqtS
@@ -108,8 +119,8 @@ httpCallbacksT *glueGetCbs(void);
 
 // API to build and lauch request (if httpPoolT==NULL then run synchronously)
 int httpBuildQuery(const char *uid, char *response, size_t maxlen, const char *prefix, const char *url, httpKeyValT *query);
-int httpSendPost(httpPoolT *pool, const char *url, const httpKeyValT *headers, httpKeyValT *tokens, httpOptsT *opts, void *databuf, long datalen, httpRqtCbT callback, void *ctx, httpFreeCtxCbT freeCtx);
-int httpSendGet(httpPoolT *pool, const char *url, const httpKeyValT *headers, httpKeyValT *tokens, httpOptsT *opts, httpRqtCbT callback, void *ctx, httpFreeCtxCbT freeCtx);
+int httpSendPost(httpPoolT *pool, const char *url, const httpOptsT *opts, httpKeyValT *tokens, void *databuf, long datalen, httpRqtCbT callback, void *ctx);
+int httpSendGet(httpPoolT *pool, const char *url, const httpOptsT *opts, httpKeyValT *tokens, httpRqtCbT callback, void *ctx);
 
 // init curl multi pool with an abstract mainloop and corresponding callbacks
 httpPoolT *httpCreatePool(void *evtLoop, httpCallbacksT *mainLoopCbs, int verbose);

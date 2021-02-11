@@ -10,7 +10,7 @@
 
 #define _GNU_SOURCE
 
-#include "curl-http.h"
+#include "http-client.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
             }
         }
     }
-#endif    
+#endif
 
     // launch all or request in asynchronous mode.
     clock_gettime(CLOCK_MONOTONIC, &startTime);
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "[request-sent] reqId=%d %s\n", ctxRqt->uid, ctxRqt->url);
 
         // basic get with no header, token, query or options
-        err = httpSendGet(httpPool, ctxRqt->url, NULL /*headers*/, NULL /*token*/, NULL /*opts*/, sampleCallback, (void *)ctxRqt, NULL /*freecb*/);
+        err = httpSendGet(httpPool, ctxRqt->url, NULL /*opts*/, NULL /*token*/, sampleCallback, (void *)ctxRqt);
         if (!err)
             count++;
         else
