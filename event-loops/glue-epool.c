@@ -13,6 +13,36 @@
  *    it calls a nested epoll_wait for the corresponding sub-pool FD and
  *    then for each waiting socket/timer within sub-pool. Finally it calls
  *    corresping libhttp/curl callback with adequate sockfd and curl action.
+ *
+ *  * Note-1:
+ *    epoll cannot attach a specific callback to a given FD.
+ *    to bypass this limit this glue creates one sub-pool per callback.
+ *    Each sub-pool as a wellknown FD store into epollEvtLoopT
+ *    when a given sub-pool FD is triggered from main event loop (mainPool)
+ *    it calls a nested epoll_wait for the corresponding sub-pool FD and
+ *    then for each waiting socket/timer within sub-pool. Finally it calls
+ *    corresping libhttp/curl callback with adequate sockfd and curl action.
+ *
+ *  Note-2: (thanks to Henrik.H for the remark.)
+ *    If you fully control your epoll mainloop you may replace nested epoll
+ *    with a common handle that describe your socket within event.data.prt
+ *    mallocing something like following structure to your event.data with
+ *    an enum to classify your FDs of by having a callback/context would
+ *    also do the job
+ *      struct whatever {
+ *        enum { TYPE_ALIEN, TYPE_CURL, TYPE_TIMERFD } type;
+ *        void* callback;
+ *        void* context;
+ *        httpPoolT *pool;
+ *        int fd;
+ *        ...
+ *     }
+ *
+ *  Note-3:
+ *    Mallocing 'struct epoll_event' before 'epoll_ctl' is useless as epoll copy structure contend.
+ *    I left this extra malloc because I lazy and it keeps epoll-curl-glue more consistant with
+ *    other mainloop models.
+ *
  */
 
 #define _GNU_SOURCE
@@ -70,6 +100,8 @@ static int glueSetSocketCB(httpPoolT *httpPool, CURL *easy, int sock, int action
     switch (action) {
     case CURL_POLL_REMOVE:
         epoll_ctl(evtLoop->socksPool, EPOLL_CTL_DEL, sock, NULL);
+        free(source);
+        return 0;
     case CURL_POLL_IN:
         events = EPOLLIN;
         break;
@@ -121,6 +153,7 @@ static int glueSetTimerCB(httpPoolT *httpPool, long timeout) {
     // if time is negative just kill it
     if (timeout < 0) {
         if (source->data.fd) close(source->data.fd);
+        free (source);
     } else {
 
         // not timer yet, create one and add it to timerpool fd list
