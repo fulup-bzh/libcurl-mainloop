@@ -102,6 +102,7 @@ int main(int argc, char *argv[])
         // retreive callback and mainloop from libuv/libsystemd glue interface
         mainLoopCbs = glueGetCbs();
         void *evtLoop = mainLoopCbs->evtMainLoop();
+        if (!evtLoop) goto OnErrorExit;
 
         // create multi pool and attach systemd eventloop
         if (mainLoopCbs)

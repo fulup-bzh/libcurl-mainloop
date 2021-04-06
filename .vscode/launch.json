@@ -8,7 +8,7 @@
             "name": "curl-async-mode",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/curl-http",
+            "program": "${workspaceFolder}/build/http-client",
             "args": [
                 "-v",
                 "-a",

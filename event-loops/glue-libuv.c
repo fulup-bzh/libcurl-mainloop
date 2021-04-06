@@ -9,7 +9,7 @@
 
 #define _GNU_SOURCE
 
-#include "http-client.h"
+#include "../http-client.h"
 
 #include <errno.h>
 #include <curl/curl.h>

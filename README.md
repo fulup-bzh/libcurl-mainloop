@@ -2,7 +2,13 @@ Small interface to libcurl with systemd event mainloop
 
 # Build
 
-You need to select a supported mainloop library. As today libsystemd & libuv
+You need to select a supported mainloop library. As today libsystemd & libuv & epoll/timerfd
+
+### epoll/timerfd (default)
+```
+  # epoll/timerfd is Linux built-in but also Linux specific
+  make
+```
 
 ### libsystemd
 ```

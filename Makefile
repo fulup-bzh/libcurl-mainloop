@@ -17,6 +17,12 @@ else ifeq ($(MAIN_LOOP),libuv)
 	GLUE_OPTS = -DGLUE_LOOP_ON
 	GLUE_FUNC = build/glue-libuv.o
 
+else
+	MAIN_LOOP = epoll
+	GLUE_LIB=
+	GLUE_OPTS = -DGLUE_LOOP_ON
+	GLUE_FUNC = build/glue-epool.o
+
 endif
 
 CFLAGS = -g $(shell pkg-config --cflags libcurl $(GLUE_LIB)) $(GLUE_OPTS)
@@ -32,9 +38,12 @@ done:
 	@echo "--"
 
 build/http-client: build/http-client.o build/curl-main.o $(GLUE_FUNC)
-	$(CC) $(LFLAGS) -o $@ build/http-client.o build/curl-main.o $(GLUE_FUNC)
+	$(CC) $(LFLAGS) -o $@ build/http-client.o build/curl-main.o $(GLUE_FUNC) $(LFLAGS)
 
-build/%.o: %.c
+build/glue-%.o: event-loops/glue-%.c http-client.h
+	$(CC) $(CFLAGS) $(GLUE_OPTS) -c ./$< -o $@
+
+build/%.o: %.c http-client.h
 	$(CC) $(CFLAGS) $(GLUE_OPTS) -c ./$< -o $@
 
 builddir:
