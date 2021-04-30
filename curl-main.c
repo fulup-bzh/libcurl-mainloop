@@ -36,8 +36,7 @@ static httpRqtActionT sampleCallback(httpRqtT *httpRqt)
     assert(httpRqt->magic == MAGIC_HTTP_RQT);
     reqCtxT *ctxRqt = (reqCtxT *)httpRqt->userData;
 
-    if (httpRqt->status != 200)
-        goto OnErrorExit;
+    if (httpRqt->status != 200 &&  httpRqt->status != 0)  goto OnErrorExit;
 
     double seconds = (double)httpRqt->msTime / 1000.0;
     fprintf(stdout, "\n[body]=%s", httpRqt->body);
@@ -46,7 +45,7 @@ static httpRqtActionT sampleCallback(httpRqtT *httpRqt)
     return HTTP_HANDLE_FREE;
 
 OnErrorExit:
-    fprintf(stderr, "[request-fx] status=%ld", httpRqt->status);
+    fprintf(stderr, "[request-error] status=%ld length=%d", httpRqt->status, httpRqt->length);
     count--;
     return HTTP_HANDLE_FREE;
 }
@@ -68,6 +67,9 @@ int main(int argc, char *argv[])
     httpCallbacksT *mainLoopCbs = NULL;
     long uid = 0;
 
+    // default empty libcurl option
+    httpOptsT curlOpts= {};
+
     if (argc <= 1)
     {
         fprintf(stderr, "[syntax-error] curl-http [-v] [-s|-a] url-1, ... url-n\n");
@@ -87,6 +89,18 @@ int main(int argc, char *argv[])
             goto OnErrorExit;
 #endif
         }
+        if (!strcasecmp(argv[start], "-u")) {
+            start ++;
+            curlOpts.username= argv[start];
+        };
+        if (!strcasecmp(argv[start], "-l")) 
+            curlOpts.ldap=1;
+
+        if (!strcasecmp(argv[start], "-p")) {
+            start ++;
+            curlOpts.password= argv[start];
+        };
+
         if (!strcasecmp(argv[start], "-v"))
             verbose++;
         if (!strcasecmp(argv[start], "-vv"))
@@ -131,7 +145,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "[request-sent] reqId=%d %s\n", ctxRqt->uid, ctxRqt->url);
 
         // basic get with no header, token, query or options
-        err = httpSendGet(httpPool, ctxRqt->url, NULL /*opts*/, NULL /*token*/, sampleCallback, (void *)ctxRqt);
+        err = httpSendGet(httpPool, ctxRqt->url, &curlOpts, NULL /*token*/, sampleCallback, (void *)ctxRqt);
         if (!err)
             count++;
         else

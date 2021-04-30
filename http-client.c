@@ -206,6 +206,9 @@ static int httpSendQuery(httpPoolT *httpPool, const char *url, const httpOptsT *
         if (opts->speedlow)curl_easy_setopt(httpRqt->easy, CURLOPT_LOW_SPEED_TIME, opts->speedlow);
         if (opts->speedlimit) curl_easy_setopt(httpRqt->easy, CURLOPT_LOW_SPEED_LIMIT, opts->speedlimit);
         if (opts->maxredir)   curl_easy_setopt(httpRqt->easy, CURLOPT_MAXREDIRS, opts->maxredir);
+        if (opts->username)   curl_easy_setopt(httpRqt->easy, CURLOPT_USERNAME, opts->username);
+        if (opts->password)   curl_easy_setopt(httpRqt->easy, CURLOPT_PASSWORD, opts->password);
+        if (opts->ldap) curl_easy_setopt(httpRqt->easy, CURLOPT_PROTOCOLS, CURLPROTO_LDAP|CURLPROTO_LDAPS);
     }
 
     if (datas)

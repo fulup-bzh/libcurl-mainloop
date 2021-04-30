@@ -59,6 +59,7 @@ typedef struct
     const char *sslkey;
     const char *tostr;
     const char *agent;
+    int ldap;
     const httpKeyValT *headers;
     const httpFreeCtxCbT freeCtx;
 } httpOptsT;

@@ -27,6 +27,33 @@
                 }
             ],
             "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "curl-ldap-mode",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/http-client",
+            "args": [
+                "-v",
+                "-s",
+                "-u", "uid=fulup,ou=People,dc=vannes,dc=iot",
+                "-p", "xxxxxxxx",
+                "ldap://ldap.ovh.iot/ou=Groups,dc=vannes,dc=iot?dn?sub?(memberUid=fulup)"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "miDebuggerPath": "/usr/bin/gdb"
         }
+
     ]
 }
