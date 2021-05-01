@@ -27,7 +27,7 @@ You need to select a supported mainloop library. As today libsystemd & libuv & e
   make
 ```
 
-# Test
+# HTTP/HTTPS
 ```
 # asynchronous ./http-client -v -a https://example.com https://example.com
 # synchronous  ./http-client -v -s https://example.com https://example.com
