@@ -33,6 +33,21 @@ You need to select a supported mainloop library. As today libsystemd & libuv & e
 # synchronous  ./http-client -v -s https://example.com https://example.com
 
 ```
+# LDAP
+Public readonly server see [forumsystems](https://www.forumsys.com/tutorials/integration-how-to/ldap/online-ldap-test-server/)
+
+```bash
+./build/http-client -v -a "ldap://ldap.forumsys.com/ou=scientists,dc=example,dc=com?uniqueMember"
+```
+
+Most enterprise LDAP require some form of authentication and run under private/protected uri. The request should obviously match your enterprise schema. Here after a typical example to retrieve groups $USER is member of.
+```bash
+export USER='xxxxx'
+export PASSWD='yyyy'
+export LDAPHOST='ldap.homename'
+
+./build/http-client -v -a -u "uid=$USER,ou=People,dc=vannes,dc=iot,dc=bzh" -p "$PASSWD" "ldap://$LDAPHOST/ou=Groups,dc=vannes,dc=iot?dn?sub?(memberUid=$USER)"
+```
 
 # Libcurl asynchronous C-API.
 

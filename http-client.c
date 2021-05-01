@@ -76,25 +76,34 @@ static void multiCheckInfoCB(httpPoolT *httpPool)
     CURLMsg *msg;
 
     // read action resulting messages
-    while ((msg = curl_multi_info_read(httpPool->multi, &count)))
-    {
+    while ((msg = curl_multi_info_read(httpPool->multi, &count))) {
         if (httpPool->verbose > 2)
             fprintf(stderr, "-- multiCheckInfoCB: status=%d \n", msg->msg);
 
-        if (msg->msg == CURLMSG_DONE)
-        {
+        if (msg->msg == CURLMSG_DONE) {
             httpRqtT *httpRqt;
 
-            // this is a httpPool request 1st search for easyhandle
+            if (httpPool->verbose > 1)  fprintf(stderr, "-- multiCheckInfoCB: done\n");
+
+            // retreive easy from msg
             CURL *easy = msg->easy_handle;
+            CURLcode estatus = msg->data.result;
 
             // retreive httpRqt from private easy handle
-            if (httpPool->verbose > 1)
-                fprintf(stderr, "-- multiCheckInfoCB: done\n");
             curl_easy_getinfo(easy, CURLINFO_PRIVATE, &httpRqt);
-            curl_easy_getinfo(httpRqt->easy, CURLINFO_SIZE_DOWNLOAD, &httpRqt->length);
-            curl_easy_getinfo(httpRqt->easy, CURLINFO_RESPONSE_CODE, &httpRqt->status);
-            curl_easy_getinfo(httpRqt->easy, CURLINFO_CONTENT_TYPE, &httpRqt->ctype);
+
+            // check request status
+            if (estatus != CURLE_OK)  {
+                char * url;
+                curl_easy_getinfo(easy, CURLINFO_EFFECTIVE_URL, &url);
+                if (httpPool->verbose)  fprintf(stderr, "\n-- request error=%s url=[%s]\n", curl_easy_strerror(estatus), url);
+                httpRqt->status=estatus;
+                httpRqt->length=0;
+            } else {
+                curl_easy_getinfo(easy, CURLINFO_SIZE_DOWNLOAD, &httpRqt->length);
+                curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &httpRqt->status);
+                curl_easy_getinfo(easy, CURLINFO_CONTENT_TYPE, &httpRqt->ctype);
+            }
 
             // do some clean up
             curl_multi_remove_handle(httpPool->multi, easy);
@@ -112,7 +121,6 @@ static void multiCheckInfoCB(httpPoolT *httpPool)
                     httpRqt->freeCtx(httpRqt->userData);
                 free(httpRqt);
             }
-
             break;
         }
     }

@@ -35,9 +35,9 @@
             "program": "${workspaceFolder}/build/http-client",
             "args": [
                 "-v",
-                "-s",
+                "-a",
                 "-u", "uid=fulup,ou=People,dc=vannes,dc=iot",
-                "-p", "xxxxxxxx",
+                "-p", "xxxxxxx",
                 "ldap://ldap.ovh.iot/ou=Groups,dc=vannes,dc=iot?dn?sub?(memberUid=fulup)"
             ],
             "stopAtEntry": false,
