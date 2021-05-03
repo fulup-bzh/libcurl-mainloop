@@ -36,7 +36,7 @@ static httpRqtActionT sampleCallback(httpRqtT *httpRqt)
     assert(httpRqt->magic == MAGIC_HTTP_RQT);
     reqCtxT *ctxRqt = (reqCtxT *)httpRqt->userData;
 
-    if (httpRqt->status != 200 &&  httpRqt->status != 0)  goto OnErrorExit;
+    if (httpRqt->status < 0)  goto OnErrorExit;
 
     double seconds = (double)httpRqt->msTime / 1000.0;
     fprintf(stdout, "\n[body]=%s", httpRqt->body);

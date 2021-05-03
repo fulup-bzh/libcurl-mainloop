@@ -94,11 +94,15 @@ static void multiCheckInfoCB(httpPoolT *httpPool)
 
             // check request status
             if (estatus != CURLE_OK)  {
-                char * url;
+                char * url, *message;
+                int len;
                 curl_easy_getinfo(easy, CURLINFO_EFFECTIVE_URL, &url);
-                if (httpPool->verbose)  fprintf(stderr, "\n-- request error=%s url=[%s]\n", curl_easy_strerror(estatus), url);
+
+                len=asprintf (&message, "[request-error] status=%d error='%s' url=[%s]", estatus, curl_easy_strerror(estatus), url);
+                if (httpPool->verbose)  fprintf(stderr, "\n--- %s\n", message);
                 httpRqt->status=estatus;
-                httpRqt->length=0;
+                httpRqt->body= message;
+                httpRqt->length=CURLOPT_IGNORE_CONTENT_LENGTH;
             } else {
                 curl_easy_getinfo(easy, CURLINFO_SIZE_DOWNLOAD, &httpRqt->length);
                 curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &httpRqt->status);
@@ -117,8 +121,8 @@ static void multiCheckInfoCB(httpPoolT *httpPool)
             httpRqtActionT status = httpRqt->callback(httpRqt);
             if (status == HTTP_HANDLE_FREE)
             {
-                if (httpRqt->freeCtx && httpRqt->userData)
-                    httpRqt->freeCtx(httpRqt->userData);
+                if (httpRqt->freeCtx && httpRqt->userData) httpRqt->freeCtx(httpRqt->userData);
+                if (httpRqt->body) free (httpRqt->body);
                 free(httpRqt);
             }
             break;
