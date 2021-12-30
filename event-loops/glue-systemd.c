@@ -37,6 +37,7 @@ static int glueOnSocketCB (sd_event_source *source, int sock, uint32_t revents, 
     else action= 0;
 
     int status=httpOnSocketCB(httpPool, sock, action);
+
     return status;
 }
 
@@ -95,7 +96,6 @@ static int glueSetSocketCB (httpPoolT *httpPool, CURL *easy, int sock, int actio
     return 0;
 
 OnErrorExit:
-
     return -1;
 }
 
@@ -114,7 +114,6 @@ static int glueSetTimerCB(httpPoolT *httpPool, long timeout)
     sd_event_source *evtTimer = (sd_event_source *)httpPool->evtTimer;
     sd_event *evtLoop = (sd_event *)httpPool->evtLoop;
 
-    sem_wait (&httpPool->slock);
     // if time is negative just kill it
     if (timeout < 0)
     {
@@ -140,11 +139,9 @@ static int glueSetTimerCB(httpPoolT *httpPool, long timeout)
             sd_event_source_set_enabled(evtTimer, SD_EVENT_ONESHOT);
         }
     }
-    sem_post (&httpPool->slock);
     return 0;
 
 OnErrorExit:
-    sem_post (&httpPool->slock);
     return -1;
 }
 

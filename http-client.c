@@ -355,10 +355,6 @@ httpPoolT *httpCreatePool(void *evtLoop, httpCallbacksT *mainLoopCbs, int verbos
     if (!httpPool->multi)
         goto OnErrorExit;
 
-    // thread exclusion semaphore
-    int err= sem_init (&httpPool->slock, 0, 1);
-    if (err < 0) goto OnErrorExit;
-
     curl_multi_setopt(httpPool->multi, CURLMOPT_SOCKETFUNCTION, multiSetSockCB);
     curl_multi_setopt(httpPool->multi, CURLMOPT_TIMERFUNCTION, multiSetTimerCB);
     curl_multi_setopt(httpPool->multi, CURLMOPT_SOCKETDATA, httpPool);

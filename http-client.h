@@ -16,7 +16,6 @@
 #include <curl/curl.h>
 #include <sys/types.h>
 #include <stdint.h>
-#include <semaphore.h>
 
 #define MAGIC_HTTP_RQT 951357
 #define MAGIC_HTTP_POOL 583498
@@ -115,7 +114,6 @@ typedef struct httpPoolS
     void *evtLoop;
     void *evtTimer;
     httpCallbacksT *callback;
-    sem_t slock;
 } httpPoolT;
 
 // glue proto to get mainloop callbacks

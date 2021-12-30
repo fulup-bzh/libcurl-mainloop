@@ -69,13 +69,13 @@ int main(int argc, char *argv[])
     runModT runmode = MOD_DEFAULT;
     httpCallbacksT *mainLoopCbs = NULL;
     long uid = 0;
-    int maxjob=50, timeout=30;
+    int timeout=30;
     char *filename=NULL;
     FILE *fileFD=NULL;
 
     if (argc <= 1)
     {
-        fprintf(stderr, "[syntax-error] batch-client [-p max-jobs(50)] [-t timeout(30)] -f filename -vvv] \n");
+        fprintf(stderr, "[syntax-error] batch-client [-t timeout(30)] -f filename -vvv] \n");
         goto OnErrorExit;
     }
 
@@ -88,11 +88,6 @@ int main(int argc, char *argv[])
     // check for option and shift argv as needed
     for (start= 1; start < argc; start++)
     {
-        if (!strcasecmp(argv[start], "-p")) {
-            start ++;
-            maxjob= atoi(argv[start]);
-        };
-
         if (!strcasecmp(argv[start], "-t")) {
             start ++;
             timeout= atoi(argv[start]);
@@ -114,11 +109,6 @@ int main(int argc, char *argv[])
 
     if (!filename || !fileFD) {
         fprintf (stderr, "No valid input file missing/invalid (-f filename)\n");
-        goto OnErrorExit;
-    }
-
-    if (maxjob <= 0) {
-        fprintf (stderr, "maxjob should be >0 (-p 50)\n");
         goto OnErrorExit;
     }
 
@@ -151,15 +141,8 @@ int main(int argc, char *argv[])
 
     // launch all or request in asynchronous mode.
     clock_gettime(CLOCK_MONOTONIC, &startTime);
-    for (int idx=0;;)
+    for (int idx=0;;idx++)
     {
-        if (count > maxjob) {
-            const char indic[]="-|.*";
-            fprintf(stderr, "%c idx=%d count=%d\r", indic[idx%4], idx, count);
-            (void)httpPool->callback->evtRunLoop(httpPool, LOOP_WAIT_SEC);
-            continue;
-        }
-        idx++;
 
         // read one request and exit at EOF
         char *request;
@@ -201,8 +184,8 @@ int main(int argc, char *argv[])
             fprintf(stderr, "-- waiting %d pending request(s)\n", count);
         else {
             index++;
-            const char indic[]="-|.*";
-            fprintf(stderr, "%c rqt wait=%d\r", indic[index%4], count);
+            const char indic[]="-/|\\";
+            fprintf(stderr, "%c Waiting rqt=%d\r", indic[index%4], count);
         }
     }
     clock_gettime(CLOCK_MONOTONIC, &stopTime);
