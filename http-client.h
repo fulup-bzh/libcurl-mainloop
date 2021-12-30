@@ -75,7 +75,7 @@ typedef struct httpRqtS
     char *body;
     char *headers;
     char *ctype;
-    long length;
+    curl_off_t length;
     long hdrLen;
     long bodyLen;
     long status;

@@ -25,6 +25,7 @@
 #endif
 
 static int count = 0; // global pending http request
+static double bytes = 0;
 
 typedef struct
 {
@@ -41,8 +42,11 @@ static httpRqtActionT sampleCallback(httpRqtT *httpRqt)
     if (httpRqt->status < 0)  goto OnErrorExit;
 
     double seconds = (double)httpRqt->msTime / 1000.0;
-    // fprintf(stdout, "\n[body]=%s", httpRqt->body);
-    fprintf(stderr, "[request-ok] reqId=%d elapsed=%2.2fs url=%s\n", ctxRqt->uid, seconds, ctxRqt->url);
+    //fprintf(stdout, "\n[body]=%s", httpRqt->body);
+    //fprintf(stderr, "[request-ok] reqId=%d elapsed=%2.2fs url=%s\n", ctxRqt->uid, seconds, ctxRqt->url);
+    double kbytes= httpRqt->length/1024.0;
+    bytes += kbytes;
+    //fprintf(stdout, "Downloaded %ld Bytes total=%2.2fKB\n", httpRqt->length, bytes);
     count--;
     free (ctxRqt->url);
     return HTTP_HANDLE_FREE;
@@ -93,6 +97,8 @@ int main(int argc, char *argv[])
             timeout= atoi(argv[start]);
         };
 
+        if (!strcasecmp(argv[start], "-s")) runmode = MOD_SYNC;
+
         if (!strcasecmp(argv[start], "-f")) {
             start ++;
             filename= argv[start];
@@ -123,19 +129,23 @@ int main(int argc, char *argv[])
         .timeout= timeout,
     };
 
-    // retreive callback and mainloop from libuv/libsystemd glue interface
-    mainLoopCbs = glueGetCbs();
-    void *evtLoop = mainLoopCbs->evtMainLoop();
-    if (!evtLoop) goto OnErrorExit;
-
-    // create multi pool and attach systemd eventloop
-    if (mainLoopCbs)
+   if (runmode != MOD_SYNC)
     {
-        httpPool = httpCreatePool(evtLoop, mainLoopCbs, verbose);
-        if (!httpPool)
+
+        // retreive callback and mainloop from libuv/libsystemd glue interface
+        mainLoopCbs = glueGetCbs();
+        void *evtLoop = mainLoopCbs->evtMainLoop();
+        if (!evtLoop) goto OnErrorExit;
+
+        // create multi pool and attach systemd eventloop
+        if (mainLoopCbs)
         {
-            fprintf(stderr, "[fail-create-pool] libcurl multi pool\n");
-            goto OnErrorExit;
+            httpPool = httpCreatePool(evtLoop, mainLoopCbs, verbose);
+            if (!httpPool)
+            {
+                fprintf(stderr, "[fail-create-pool] libcurl multi pool\n");
+                goto OnErrorExit;
+            }
         }
     }
 
@@ -149,7 +159,7 @@ int main(int argc, char *argv[])
         size_t size=0;
         ssize_t len= getline (&request, &size, fileFD);
         if (len < 0) {
-            fprintf (stderr, "EOF(%s)\n", filename);
+            fprintf (stderr, "\nEOF(%s)\n", filename);
             break;
         }
         request[len-1]='\0'; // remove \n
@@ -169,30 +179,33 @@ int main(int argc, char *argv[])
         else
         {
             fprintf(stderr, "[request-fail] request url=%s\n", ctxRqt->url);
-            goto OnErrorExit;
+            if (runmode != MOD_SYNC ) goto OnErrorExit;
         }
     }
 
     // wait for all pending request to be finished
     int index=0;
-    while (count)
-    {
+    if (runmode != MOD_SYNC ) {
+        while (count)
+        {
 
-        // enter mainloop and ping stdout every xxx seconds if nothing happen
-        (void)httpPool->callback->evtRunLoop(httpPool, LOOP_WAIT_SEC);
-        if (verbose > 1)
-            fprintf(stderr, "-- waiting %d pending request(s)\n", count);
-        else {
-            index++;
-            const char indic[]="-/|\\";
-            fprintf(stderr, "%c Waiting rqt=%d\r", indic[index%4], count);
+            // enter mainloop and ping stdout every xxx seconds if nothing happen
+            (void)httpPool->callback->evtRunLoop(httpPool, LOOP_WAIT_SEC);
+            if (verbose > 1)
+                fprintf(stderr, "-- waiting %d pending request(s)\n", count);
+            else {
+                index++;
+                const char indic[]="-/|\\";
+                fprintf(stderr, "%c Waiting rqt=%d\r", indic[index%4], count);
+            }
         }
     }
     clock_gettime(CLOCK_MONOTONIC, &stopTime);
     uint64_t msElapsed = (stopTime.tv_nsec - startTime.tv_nsec) / 1000000 + (stopTime.tv_sec - startTime.tv_sec) * 1000;
     double seconds = (double)msElapsed / 1000.0;
 
-    fprintf(stderr, "\n[request-done] total request count=%ld elapsed=%2.2fs (no more pending request)\n", uid, seconds);
+    fprintf(stderr, "\n[request-done] total request count=%ld elapsed=%2.2fs (no more pending request) avr-size=%2.2fKB Mbit/s=%2.2f\n"
+                  , uid, seconds, bytes/uid, 8*bytes/seconds/1024);
     exit(0);
 
 OnErrorExit:

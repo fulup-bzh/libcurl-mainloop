@@ -102,11 +102,12 @@ static void multiCheckInfoCB(httpPoolT *httpPool)
                 if (httpPool->verbose)  fprintf(stderr, "\n--- %s\n", message);
                 httpRqt->status=estatus;
                 httpRqt->body= message;
-                httpRqt->length=CURLOPT_IGNORE_CONTENT_LENGTH;
+                httpRqt->length=strlen(message);
             } else {
-                curl_easy_getinfo(easy, CURLINFO_SIZE_DOWNLOAD, &httpRqt->length);
-                curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE, &httpRqt->status);
-                curl_easy_getinfo(easy, CURLINFO_CONTENT_TYPE, &httpRqt->ctype);
+                httpRqt->length=0;
+                curl_easy_getinfo(easy, CURLINFO_SIZE_DOWNLOAD_T, &httpRqt->length);
+                curl_easy_getinfo(easy, CURLINFO_RESPONSE_CODE,  &httpRqt->status);
+                curl_easy_getinfo(easy, CURLINFO_CONTENT_TYPE,  &httpRqt->ctype);
             }
 
             // do some clean up

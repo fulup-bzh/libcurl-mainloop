@@ -10,8 +10,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/batch-client",
             "args": [
-                "-p","100",
-                "-f","./smallrqt.in",
+                "-p","50",
+                "-f","./tinyrqt.in",
                 "-v",
             ],
             "stopAtEntry": false,
