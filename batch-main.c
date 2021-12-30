@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <unistd.h>
 
 // default mainloop timeout 1s
 #ifndef LOOP_WAIT_SEC
@@ -28,7 +29,7 @@ static int count = 0; // global pending http request
 typedef struct
 {
     int uid;
-    const char *url;
+    char *url;
 } reqCtxT;
 
 // The URL callback in your application where users are sent after authorization.
@@ -40,9 +41,10 @@ static httpRqtActionT sampleCallback(httpRqtT *httpRqt)
     if (httpRqt->status < 0)  goto OnErrorExit;
 
     double seconds = (double)httpRqt->msTime / 1000.0;
-    fprintf(stdout, "\n[body]=%s", httpRqt->body);
+    // fprintf(stdout, "\n[body]=%s", httpRqt->body);
     fprintf(stderr, "[request-ok] reqId=%d elapsed=%2.2fs url=%s\n", ctxRqt->uid, seconds, ctxRqt->url);
     count--;
+    free (ctxRqt->url);
     return HTTP_HANDLE_FREE;
 
 OnErrorExit:
@@ -144,7 +146,8 @@ int main(int argc, char *argv[])
     for (int idx=0;;)
     {
         if (count > maxjob) {
-            if (verbose > 2) fprintf(stderr, "### Maxrun(%d) reached idx=%d ###\n", maxjob, idx);
+            const char indic[]="-|.*";
+            fprintf(stderr, "%c idx=%d count=%d\r", indic[idx%4], idx, count);
             (void)httpPool->callback->evtRunLoop(httpPool, LOOP_WAIT_SEC);
             continue;
         }
@@ -180,14 +183,19 @@ int main(int argc, char *argv[])
     }
 
     // wait for all pending request to be finished
+    int index=0;
     while (count)
     {
+
         // enter mainloop and ping stdout every xxx seconds if nothing happen
         (void)httpPool->callback->evtRunLoop(httpPool, LOOP_WAIT_SEC);
         if (verbose > 1)
             fprintf(stderr, "-- waiting %d pending request(s)\n", count);
-        else
-            fprintf(stderr, ".");
+        else {
+            index++;
+            const char indic[]="-|.*";
+            fprintf(stderr, "%c rqt count=%d\r", indic[index%4], count);
+        }
     }
     clock_gettime(CLOCK_MONOTONIC, &stopTime);
     uint64_t msElapsed = (stopTime.tv_nsec - startTime.tv_nsec) / 1000000 + (stopTime.tv_sec - startTime.tv_sec) * 1000;
