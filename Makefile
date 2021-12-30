@@ -9,10 +9,11 @@
 
 CC=gcc -Wformat
 
-ifeq ($(MAIN_LOOP),systemd)
+ifeq ($(MAIN_LOOP),epoll)
+	MAIN_LOOP = epoll
+	GLUE_LIB=
 	GLUE_OPTS = -DGLUE_LOOP_ON
-	GLUE_FUNC = build/glue-systemd.o
-	GLUE_LIB=libsystemd
+	GLUE_FUNC = build/glue-epoll.o
 
 else ifeq ($(MAIN_LOOP),libuv)
 	GLUE_LIB=libuv
@@ -20,11 +21,9 @@ else ifeq ($(MAIN_LOOP),libuv)
 	GLUE_FUNC = build/glue-libuv.o
 
 else
-	MAIN_LOOP = epoll
-	GLUE_LIB=
 	GLUE_OPTS = -DGLUE_LOOP_ON
-	GLUE_FUNC = build/glue-epool.o
-
+	GLUE_FUNC = build/glue-systemd.o
+	GLUE_LIB=libsystemd
 endif
 
 CFLAGS = -g $(shell pkg-config --cflags libcurl $(GLUE_LIB)) $(GLUE_OPTS)

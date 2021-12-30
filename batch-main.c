@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
         else {
             index++;
             const char indic[]="-|.*";
-            fprintf(stderr, "%c rqt count=%d\r", indic[index%4], count);
+            fprintf(stderr, "%c rqt wait=%d\r", indic[index%4], count);
         }
     }
     clock_gettime(CLOCK_MONOTONIC, &stopTime);

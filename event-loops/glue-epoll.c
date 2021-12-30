@@ -161,7 +161,9 @@ static int glueSetTimerCB(httpPoolT *httpPool, long timeout) {
 
             // attach new event source and attach it to systemd mainloop
             err = epoll_ctl(evtLoop->timerPool, EPOLL_CTL_ADD, source->data.fd, source);
-            if (err < 0) goto OnErrorExit;
+            if (err < 0) {
+                goto OnErrorExit;
+            }
 
             httpPool->evtTimer = (void *)source;
         }
@@ -174,7 +176,10 @@ static int glueSetTimerCB(httpPoolT *httpPool, long timeout) {
         delay.it_value.tv_sec = timeout / 1000;
         delay.it_value.tv_nsec = (timeout % 1000) * 1000000;
         err = timerfd_settime(source->data.fd, 0, &delay, NULL);
-        if (err) goto OnErrorExit;
+        if (err)
+        {
+            goto OnErrorExit;
+        }
     }
     return 0;
 

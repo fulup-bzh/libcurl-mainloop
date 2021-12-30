@@ -4,13 +4,13 @@ Small interface to libcurl with systemd event mainloop
 
 You need to select a supported mainloop library. As today libsystemd & libuv & epoll/timerfd
 
-### epoll/timerfd (default)
+### epoll/timerfd
 ```
   # epoll/timerfd is Linux built-in but also Linux specific
-  make
+  make MAIN_LOOP=epoll
 ```
 
-### libsystemd
+### libsystemd (default)
 ```
   dnf/zypper/apt install libsystemd-devel
   make MAIN_LOOP=systemd
