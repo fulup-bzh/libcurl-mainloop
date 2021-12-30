@@ -69,16 +69,13 @@ int main(int argc, char *argv[])
     runModT runmode = MOD_DEFAULT;
     httpCallbacksT *mainLoopCbs = NULL;
     long uid = 0;
-    int maxjob=50, timeout=5;
+    int maxjob=50, timeout=30;
     char *filename=NULL;
     FILE *fileFD=NULL;
 
-    // default empty libcurl option
-    httpOptsT curlOpts= {};
-
     if (argc <= 1)
     {
-        fprintf(stderr, "[syntax-error] batch-client [-p max-jobs(50)] -f filename -vvv] \n");
+        fprintf(stderr, "[syntax-error] batch-client [-p max-jobs(50)] [-t timeout(30)] -f filename -vvv] \n");
         goto OnErrorExit;
     }
 
@@ -94,6 +91,11 @@ int main(int argc, char *argv[])
         if (!strcasecmp(argv[start], "-p")) {
             start ++;
             maxjob= atoi(argv[start]);
+        };
+
+        if (!strcasecmp(argv[start], "-t")) {
+            start ++;
+            timeout= atoi(argv[start]);
         };
 
         if (!strcasecmp(argv[start], "-f")) {
@@ -124,6 +126,12 @@ int main(int argc, char *argv[])
         fprintf (stderr, "timeout should be >0 (-t 5)\n");
         goto OnErrorExit;
     }
+
+
+    // default libcurl option
+    httpOptsT curlOpts= {
+        .timeout= timeout,
+    };
 
     // retreive callback and mainloop from libuv/libsystemd glue interface
     mainLoopCbs = glueGetCbs();
