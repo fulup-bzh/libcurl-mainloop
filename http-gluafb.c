@@ -121,9 +121,11 @@ static httpCallbacksT libafbCbs = {
     .multiSocket = glueSetSocketCB,
     .evtMainLoop = NULL,
     .evtRunLoop = NULL,
+    .sl
 };
 
 httpCallbacksT *glueGetCbs()
 {
+    if (libafbCbs)
     return &libafbCbs;
 }

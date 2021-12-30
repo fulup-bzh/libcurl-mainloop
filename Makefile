@@ -27,7 +27,7 @@ else
 endif
 
 CFLAGS = -g $(shell pkg-config --cflags libcurl $(GLUE_LIB)) $(GLUE_OPTS)
-LFLAGS = -g $(shell pkg-config --cflags --libs libcurl $(GLUE_LIB))
+LFLAGS = -g $(shell pkg-config --cflags --libs libcurl $(GLUE_LIB)) -pthread
 
 .PHONY: all clean
 
