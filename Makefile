@@ -36,7 +36,7 @@ all: builddir build/http-client build/batch-client done
 done:
 	@echo "--"
 	@echo "-- syntax: ./build/http-client  -v -a https://example.com http://example.com"
-	@echo "-- syntax: ./build/batch-client -v [-p max-job] -f filename"
+	@echo "-- syntax: ./build/batch-client -v [-t timeout] -f filename"
 	@echo "--"
 
 build/batch-client: build/http-client.o build/batch-main.o $(GLUE_FUNC)
