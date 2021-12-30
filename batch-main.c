@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     runModT runmode = MOD_DEFAULT;
     httpCallbacksT *mainLoopCbs = NULL;
     long uid = 0;
-    int maxjob=50;
+    int maxjob=50, timeout=5;
     char *filename=NULL;
     FILE *fileFD=NULL;
 
@@ -87,17 +87,18 @@ int main(int argc, char *argv[])
 #endif
 
     // check for option and shift argv as needed
-    for (start = 1; start < argc; start++)
+    for (start= 1; start < argc; start++)
     {
         if (!strcasecmp(argv[start], "-p")) {
             start ++;
             maxjob= atoi(argv[start]);
         };
 
-        if (!strcasecmp(argv[start], "-f"))
+        if (!strcasecmp(argv[start], "-f")) {
             start ++;
             filename= argv[start];
             fileFD= fopen(filename, "r");
+        }
 
         if (!strcasecmp(argv[start], "-v"))
             verbose++;
@@ -113,7 +114,12 @@ int main(int argc, char *argv[])
     }
 
     if (maxjob <= 0) {
-        fprintf (stderr, "Max parallelized job should be > 0 (-p xxx)\n");
+        fprintf (stderr, "maxjob should be >0 (-p 50)\n");
+        goto OnErrorExit;
+    }
+
+    if (timeout <= 0) {
+        fprintf (stderr, "timeout should be >0 (-t 5)\n");
         goto OnErrorExit;
     }
 
@@ -135,8 +141,15 @@ int main(int argc, char *argv[])
 
     // launch all or request in asynchronous mode.
     clock_gettime(CLOCK_MONOTONIC, &startTime);
-    for (int idx=0; idx < maxjob; idx++)
+    for (int idx=0;;)
     {
+        if (count > maxjob) {
+            if (verbose > 2) fprintf(stderr, "### Maxrun(%d) reached idx=%d ###\n", maxjob, idx);
+            (void)httpPool->callback->evtRunLoop(httpPool, LOOP_WAIT_SEC);
+            continue;
+        }
+        idx++;
+
         // read one request and exit at EOF
         char *request;
         size_t size=0;
