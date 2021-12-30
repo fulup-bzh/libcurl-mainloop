@@ -7,6 +7,8 @@
 # $RP_END_LICENSE$
 #
 
+CC=gcc -Wformat
+
 ifeq ($(MAIN_LOOP),systemd)
 	GLUE_OPTS = -DGLUE_LOOP_ON
 	GLUE_FUNC = build/glue-systemd.o
@@ -30,12 +32,16 @@ LFLAGS = -g $(shell pkg-config --cflags --libs libcurl $(GLUE_LIB))
 
 .PHONY: all clean
 
-all: builddir build/http-client done
+all: builddir build/http-client build/batch-client done
 
 done:
 	@echo "--"
-	@echo "-- syntax: ./build/http-client -v -a https://example.com http://example.com"
+	@echo "-- syntax: ./build/http-client  -v -a https://example.com http://example.com"
+	@echo "-- syntax: ./build/batch-client -v [-p max-job] -f filename"
 	@echo "--"
+
+build/batch-client: build/http-client.o build/batch-main.o $(GLUE_FUNC)
+	$(CC) $(LFLAGS) -o $@ build/http-client.o build/batch-main.o $(GLUE_FUNC) $(LFLAGS)
 
 build/http-client: build/http-client.o build/curl-main.o $(GLUE_FUNC)
 	$(CC) $(LFLAGS) -o $@ build/http-client.o build/curl-main.o $(GLUE_FUNC) $(LFLAGS)

@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 // default mainloop timeout 1s
 #ifndef LOOP_WAIT_SEC
@@ -66,40 +67,37 @@ int main(int argc, char *argv[])
     runModT runmode = MOD_DEFAULT;
     httpCallbacksT *mainLoopCbs = NULL;
     long uid = 0;
+    int maxjob=50;
+    char *filename=NULL;
+    FILE *fileFD=NULL;
 
     // default empty libcurl option
     httpOptsT curlOpts= {};
 
     if (argc <= 1)
     {
-        fprintf(stderr, "[syntax-error] http-client [-v] [-s|-a] url-1, ... url-n\n");
+        fprintf(stderr, "[syntax-error] batch-client [-p max-jobs(50)] -f filename -vvv] \n");
         goto OnErrorExit;
     }
 
-    // check for option and shift argv as needed
-    for (start = 1; argv[start][0] == '-'; start++)
-    {
-        if (!strcasecmp(argv[start], "-s"))
-            runmode = MOD_SYNC;
-        if (!strcasecmp(argv[start], "-a"))
-        {
 #ifndef GLUE_LOOP_ON
             runmode = MOD_ASYNC;
             fprintf (stderr, "[no-glue-lib] please recompile with 'make MAIN_LOOP=systemd|libuv'\n");
             goto OnErrorExit;
 #endif
-        }
-        if (!strcasecmp(argv[start], "-u")) {
-            start ++;
-            curlOpts.username= argv[start];
-        };
-        if (!strcasecmp(argv[start], "-l"))
-            curlOpts.ldap=1;
 
+    // check for option and shift argv as needed
+    for (start = 1; start < argc; start++)
+    {
         if (!strcasecmp(argv[start], "-p")) {
             start ++;
-            curlOpts.password= argv[start];
+            maxjob= atoi(argv[start]);
         };
+
+        if (!strcasecmp(argv[start], "-f"))
+            start ++;
+            filename= argv[start];
+            fileFD= fopen(filename, "r");
 
         if (!strcasecmp(argv[start], "-v"))
             verbose++;
@@ -109,37 +107,50 @@ int main(int argc, char *argv[])
             verbose = +3;
     }
 
-#ifdef GLUE_LOOP_ON
-    if (runmode != MOD_SYNC)
+    if (!filename || !fileFD) {
+        fprintf (stderr, "No valid input file missing/invalid (-f filename)\n");
+        goto OnErrorExit;
+    }
+
+    if (maxjob <= 0) {
+        fprintf (stderr, "Max parallelized job should be > 0 (-p xxx)\n");
+        goto OnErrorExit;
+    }
+
+    // retreive callback and mainloop from libuv/libsystemd glue interface
+    mainLoopCbs = glueGetCbs();
+    void *evtLoop = mainLoopCbs->evtMainLoop();
+    if (!evtLoop) goto OnErrorExit;
+
+    // create multi pool and attach systemd eventloop
+    if (mainLoopCbs)
     {
-
-        // retreive callback and mainloop from libuv/libsystemd glue interface
-        mainLoopCbs = glueGetCbs();
-        void *evtLoop = mainLoopCbs->evtMainLoop();
-        if (!evtLoop) goto OnErrorExit;
-
-        // create multi pool and attach systemd eventloop
-        if (mainLoopCbs)
+        httpPool = httpCreatePool(evtLoop, mainLoopCbs, verbose);
+        if (!httpPool)
         {
-            httpPool = httpCreatePool(evtLoop, mainLoopCbs, verbose);
-            if (!httpPool)
-            {
-                fprintf(stderr, "[fail-create-pool] libcurl multi pool\n");
-                goto OnErrorExit;
-            }
+            fprintf(stderr, "[fail-create-pool] libcurl multi pool\n");
+            goto OnErrorExit;
         }
     }
-#endif
 
     // launch all or request in asynchronous mode.
     clock_gettime(CLOCK_MONOTONIC, &startTime);
-    for (long reqId = start; reqId < argc; reqId++)
+    for (int idx=0; idx < maxjob; idx++)
     {
+        // read one request and exit at EOF
+        char *request;
+        size_t size=0;
+        ssize_t len= getline (&request, &size, fileFD);
+        if (len < 0) {
+            fprintf (stderr, "EOF(%s)\n", filename);
+            break;
+        }
+        request[len-1]='\0'; // remove \n
 
         // add a sample userData to http request
         reqCtxT *ctxRqt = calloc(1, sizeof(reqCtxT));
-        ctxRqt->url = argv[reqId];
         ctxRqt->uid = uid++;
+        ctxRqt->url = request;
 
         if (verbose)
             fprintf(stderr, "[request-sent] reqId=%d %s\n", ctxRqt->uid, ctxRqt->url);
@@ -156,16 +167,15 @@ int main(int argc, char *argv[])
     }
 
     // wait for all pending request to be finished
-    if (runmode != MOD_SYNC && httpPool)
-        while (count)
-        {
-            // enter mainloop and ping stdout every xxx seconds if nothing happen
-            (void)httpPool->callback->evtRunLoop(httpPool, LOOP_WAIT_SEC);
-            if (verbose > 1)
-                fprintf(stderr, "-- waiting %d pending request(s)\n", count);
-            else
-                fprintf(stderr, ".");
-        }
+    while (count)
+    {
+        // enter mainloop and ping stdout every xxx seconds if nothing happen
+        (void)httpPool->callback->evtRunLoop(httpPool, LOOP_WAIT_SEC);
+        if (verbose > 1)
+            fprintf(stderr, "-- waiting %d pending request(s)\n", count);
+        else
+            fprintf(stderr, ".");
+    }
     clock_gettime(CLOCK_MONOTONIC, &stopTime);
     uint64_t msElapsed = (stopTime.tv_nsec - startTime.tv_nsec) / 1000000 + (stopTime.tv_sec - startTime.tv_sec) * 1000;
     double seconds = (double)msElapsed / 1000.0;

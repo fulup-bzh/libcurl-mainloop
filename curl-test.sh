@@ -1,4 +1,4 @@
-#!//usr/bin/bash
+#!/bin/bash
 COUNTER=0
 
 DIRNAME=`dirname $0`
@@ -30,6 +30,6 @@ do
   COUNTER=$[$COUNTER +1]
 done
 
-echo "lanching $DIRNAME/build/curl-http $GETURL (repeated $MAXCOUNT)"
-$DIRNAME/build/curl-http -v $RUNMOD $URLS >/dev/null
+echo "lanching $DIRNAME/build/http-client $GETURL (repeated $MAXCOUNT)"
+$DIRNAME/build/http-client -v $RUNMOD $URLS >/dev/null
 
